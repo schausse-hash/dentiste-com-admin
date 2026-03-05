@@ -1,66 +1,88 @@
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { signOut } from './actions';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
-export default async function AdminHome() {
-  const supabase = createClient();
+export default function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const params = useSearchParams();
+  const router = useRouter();
 
-  const { data: pages, error } = await supabase
-    .from('pages')
-    .select('slug,title,updated_at')
-    .order('slug', { ascending: true });
+  async function onSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      router.push('/admin');
+      router.refresh();
+    } catch (err) {
+      setMessage(err?.message || 'Erreur de connexion');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Gestion du contenu</h1>
-        <form action={signOut}>
-          <button className="px-3 py-2 rounded bg-charcoal text-cream text-sm">Déconnexion</button>
-        </form>
-      </div>
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white border rounded-lg p-6">
+        <h1 className="text-2xl font-bold">Connexion admin</h1>
+        <p className="text-sm text-warm-gray mt-1">
+          Accès réservé. Utilise ton compte Supabase Auth.
+        </p>
 
-      {error && (
-        <div className="mt-4 p-3 rounded bg-red-50 text-red-800 text-sm">
-          Erreur Supabase: {error.message}
-        </div>
-      )}
-
-      <div className="mt-6 grid gap-3">
-        {(pages || []).map((p) => (
-          <Link key={p.slug} href={`/admin/pages/${encodeURIComponent(p.slug)}`}
-            className="block p-4 rounded border bg-white hover:bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold">{p.title || p.slug}</div>
-                <div className="text-xs text-warm-gray">/{p.slug}</div>
-              </div>
-              <div className="text-xs text-warm-gray">
-                {p.updated_at ? new Date(p.updated_at).toLocaleString('fr-CA') : ''}
-              </div>
-            </div>
-          </Link>
-        ))}
-
-        <div className="p-4 rounded border bg-white">
-          <div className="font-semibold mb-2">Créer une nouvelle page</div>
-          <Link className="underline text-sm" href="/admin/pages/nouvelle-page">
-            Ouvrir l’éditeur avec un slug (ex: nouvelle-page)
-          </Link>
-          <div className="text-xs text-warm-gray mt-2">
-            Astuce: remplace “nouvelle-page” dans l’URL par le slug voulu.
+        {params.get('error') === 'missing_env' && (
+          <div className="mt-4 p-3 rounded bg-yellow-50 text-yellow-800 text-sm">
+            Variables d’environnement Supabase manquantes. Configure NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.
           </div>
-        </div>
-      </div>
+        )}
 
-      <div className="mt-8 p-4 rounded bg-dental-50 border text-sm">
-        <div className="font-semibold mb-1">Configuration Supabase</div>
-        <ol className="list-decimal ml-5 space-y-1">
-          <li>Créer une table <code className="px-1 bg-white border rounded">pages</code> (voir <code className="px-1 bg-white border rounded">supabase.sql</code>).</li>
-          <li>Activer RLS + politiques (incluses dans le fichier).</li>
-          <li>Mettre <code className="px-1 bg-white border rounded">NEXT_PUBLIC_SUPABASE_URL</code> et <code className="px-1 bg-white border rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> dans <code className="px-1 bg-white border rounded">.env.local</code> (et sur Vercel).</li>
-        </ol>
+        {message && (
+          <div className="mt-4 p-3 rounded bg-red-50 text-red-800 text-sm">{message}</div>
+        )}
+
+        <form onSubmit={onSubmit} className="mt-6 space-y-3">
+          <div>
+            <label className="block text-sm font-medium">Email</label>
+            <input
+              className="mt-1 w-full border rounded px-3 py-2"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Mot de passe</label>
+            <input
+              className="mt-1 w-full border rounded px-3 py-2"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          <button
+            className="w-full rounded bg-charcoal text-cream py-2 font-semibold disabled:opacity-50"
+            disabled={loading}
+            type="submit"
+          >
+            {loading ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-xs text-warm-gray">
+          Si tu n’as pas encore créé d’utilisateur: Supabase → Authentication → Users → Invite / Add user.
+        </div>
       </div>
     </div>
   );
