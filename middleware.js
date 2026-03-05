@@ -1,25 +1,32 @@
-import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request) {
-  const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl
 
-  // Only protect /admin routes (except login)
+  // 1) Redirect racine -> /fr (site bilingue)
+  // (ne touche pas aux routes admin)
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL('/fr', request.url))
+  }
+
+  // 2) Protection /admin (sauf /admin/login)
   if (!pathname.startsWith('/admin') || pathname.startsWith('/admin/login')) {
-    return NextResponse.next();
+    return NextResponse.next()
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    // If env vars aren't set, fail closed for admin
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
-    url.searchParams.set('error', 'missing_env');
-    return NextResponse.redirect(url);
+    // Fail closed sur admin si env vars manquantes
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/login'
+    url.searchParams.set('error', 'missing_env')
+    return NextResponse.redirect(url)
   }
 
-  const response = NextResponse.next();
+  const response = NextResponse.next()
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -27,20 +34,22 @@ export async function middleware(request) {
       set: (name, value, options) => response.cookies.set({ name, value, ...options }),
       remove: (name, options) => response.cookies.set({ name, value: '', ...options }),
     },
-  });
+  })
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/admin/login';
-    url.searchParams.set('redirectedFrom', pathname);
-    return NextResponse.redirect(url);
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/login'
+    url.searchParams.set('redirectedFrom', pathname)
+    return NextResponse.redirect(url)
   }
 
-  return response;
+  return response
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
-};
+  matcher: ['/', '/admin/:path*'],
+}
