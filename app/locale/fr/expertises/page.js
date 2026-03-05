@@ -10,7 +10,7 @@ export default async function ExpertisesFR() {
     .select('*')
     .eq('locale','fr')
     .eq('published', true)
-    .order('order')
+    .order('order', { ascending: true })
 
   return (
     <div>
