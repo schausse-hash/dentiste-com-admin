@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "next lint"
+    "lint": "next lint"
   },
   "dependencies": {
     "next": "14.2.3",
@@ -15,14 +14,11 @@
     "react-dom": "^18",
     "lucide-react": "^0.263.1",
     "@supabase/supabase-js": "^2.49.1",
-    "@supabase/ssr": "^0.5.2",
-    "react-markdown": "^9.0.1",
-    "remark-gfm": "^4.0.0"
+    "@supabase/ssr": "^0.5.2"
   },
   "devDependencies": {
     "autoprefixer": "^10",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "@tailwindcss/typography": "^0.5.15"
+    "tailwindcss": "^3.4.1"
   }
 }
